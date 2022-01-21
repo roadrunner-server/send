@@ -32,7 +32,7 @@ func (p *Plugin) Init(log *zap.Logger) error {
 func (p *Plugin) Middleware(next http.Handler) http.Handler { //nolint:gocognit
 	// Define the http.HandlerFunc
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if path := r.Header.Get(xSendHeader); path != "" {
+		if path := r.Header.Get(xSendHeader); path != "" { //nolint:nestif
 			defer func() {
 				_ = r.Body.Close()
 			}()
