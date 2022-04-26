@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/roadrunner-server/sdk/v2/utils"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +34,13 @@ func (p *Plugin) Init(log *zap.Logger) error {
 func (p *Plugin) Middleware(next http.Handler) http.Handler { //nolint:gocognit
 	// Define the http.HandlerFunc
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if val, ok := r.Context().Value(utils.OtelTracerNameKey).(string); ok {
+			tp := trace.SpanFromContext(r.Context()).TracerProvider()
+			ctx, span := tp.Tracer(val).Start(r.Context(), PluginName)
+			defer span.End()
+			r = r.WithContext(ctx)
+		}
+
 		if path := r.Header.Get(xSendHeader); path != "" { //nolint:nestif
 			defer func() {
 				_ = r.Body.Close()
