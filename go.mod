@@ -3,7 +3,7 @@ module github.com/roadrunner-server/send/v2
 go 1.18
 
 require (
-	github.com/roadrunner-server/sdk/v2 v2.14.0
+	github.com/roadrunner-server/sdk/v2 v2.14.1
 	go.opentelemetry.io/otel/trace v1.7.0
 	go.uber.org/zap v1.21.0
 )
