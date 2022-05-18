@@ -1,2 +1,1 @@
-# send
-RRv2 HTTP X-Sendfile middleware
+# Docs: [link](https://roadrunner.dev/docs/middleware-sendfile/2.x/en)
