@@ -3,7 +3,7 @@ module github.com/roadrunner-server/send/v2
 go 1.19
 
 require (
-	github.com/roadrunner-server/sdk/v2 v2.19.0-rc.4
+	github.com/roadrunner-server/sdk/v2 v2.19.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.34.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.9.0
 	go.opentelemetry.io/otel v1.9.0
