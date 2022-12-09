@@ -53,9 +53,13 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler { //nolint:gocognit
 			r = r.WithContext(ctx)
 		}
 
+		next.ServeHTTP(w, r)
+
+		// if there is an X-Sendfile header from the PHP worker, handle it
 		if path := r.Header.Get(xSendHeader); path != "" { //nolint:nestif
 			defer func() {
 				_ = r.Body.Close()
+				r.Header.Del(xSendHeader)
 			}()
 
 			// do not allow paths like ../../resource, security
@@ -120,11 +124,8 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler { //nolint:gocognit
 			}
 
 			r.Header.Set(ContentTypeKey, ContentTypeVal)
-			r.Header.Del(xSendHeader)
 			return
 		}
-
-		next.ServeHTTP(w, r)
 	})
 }
 
