@@ -149,6 +149,10 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			n, err := f.ReadAt(buf, int64(off))
 			if err != nil {
 				if errors.Is(err, io.EOF) {
+					if n > 0 {
+						goto out
+					}
+
 					break
 				}
 
@@ -156,6 +160,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 				return
 			}
 
+		out:
 			buf = buf[:n]
 			_, err = w.Write(buf)
 			if err != nil {
