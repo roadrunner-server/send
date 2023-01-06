@@ -25,15 +25,18 @@ const (
 	bufSize        int    = 10 * 1024 * 1024 // 10MB chunks
 )
 
+type Logger interface {
+	NamedLogger(name string) *zap.Logger
+}
+
 type Plugin struct {
 	log         *zap.Logger
 	writersPool sync.Pool
 	prop        propagation.TextMapPropagator
 }
 
-func (p *Plugin) Init(log *zap.Logger) error {
-	p.log = new(zap.Logger)
-	*p.log = *log
+func (p *Plugin) Init(log Logger) error {
+	p.log = log.NamedLogger(PluginName)
 
 	p.writersPool = sync.Pool{
 		New: func() any {
