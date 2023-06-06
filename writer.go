@@ -15,9 +15,8 @@ func (w *writer) WriteHeader(code int) {
 }
 
 func (w *writer) Write(b []byte) (int, error) {
-	w.data = make([]byte, len(b))
-	copy(w.data, b)
-	return len(w.data), nil
+	w.data = append(w.data, b...)
+	return len(b), nil
 }
 
 func (w *writer) Header() http.Header {
