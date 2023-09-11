@@ -41,8 +41,8 @@ func (p *Plugin) Init(log Logger) error {
 	p.writersPool = sync.Pool{
 		New: func() any {
 			wr := new(writer)
-			wr.code = -1
-			wr.data = nil
+			wr.code = http.StatusOK
+			wr.data = make([]byte, 0, 10)
 			wr.hdrToSend = make(map[string][]string, 2)
 			return wr
 		},
@@ -188,13 +188,12 @@ func (p *Plugin) Name() string {
 }
 
 func (p *Plugin) getWriter() *writer {
-	wr := p.writersPool.Get().(*writer)
-	return wr
+	return p.writersPool.Get().(*writer)
 }
 
 func (p *Plugin) putWriter(w *writer) {
-	w.code = -1
-	w.data = nil
+	w.code = http.StatusOK
+	w.data = make([]byte, 0, 10)
 
 	for k := range w.hdrToSend {
 		delete(w.hdrToSend, k)
