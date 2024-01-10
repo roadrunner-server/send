@@ -13,10 +13,10 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/roadrunner-server/errors v1.3.0 h1:kLVXpXne0jMReN7pj8KIhyYyjqKjsPC5DRGqMsd4/Fo=
 github.com/roadrunner-server/errors v1.3.0/go.mod h1:XYVuhXvxi3yQaP/zCLB6QRZ0JvQIRaBa0SKFHL4WLKg=
-github.com/roadrunner-server/sdk/v4 v4.5.4 h1:LCHU8XrXPBJ9js6dtuUnG0ANEiueUf1nGoJVSNQyZMk=
-github.com/roadrunner-server/sdk/v4 v4.5.4/go.mod h1:6kSBXEUs2Je7IviqkAuZWQ7b/Vc2mxgS/IK7cAJ1Kkw=
 github.com/roadrunner-server/sdk/v4 v4.5.5 h1:YNPV9yCG1tHQRN4vXs9V1xY9e+CQSbwNncrcFy7FWsA=
 github.com/roadrunner-server/sdk/v4 v4.5.5/go.mod h1:M21tpBfCk3NEH2ixa/Fs80d7KGPVP9zwLrZhc/goi1Y=
+github.com/roadrunner-server/sdk/v4 v4.5.6 h1:vfEYV0bHf/6Wi4qwLlNiwj5O239xpPKIc7Ho2kIcb3Q=
+github.com/roadrunner-server/sdk/v4 v4.5.6/go.mod h1:M21tpBfCk3NEH2ixa/Fs80d7KGPVP9zwLrZhc/goi1Y=
 github.com/roadrunner-server/tcplisten v1.4.0 h1:yWo09zktv/CSV6VywLfw4pwNcUchgTiIrW4uIICtO5M=
 github.com/roadrunner-server/tcplisten v1.4.0/go.mod h1:A6+VSnW2ETGnN/e/CMdP63ZXqQDaC0UDMU6QmyuB0yM=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
