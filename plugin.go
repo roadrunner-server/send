@@ -111,35 +111,57 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// do not allow paths like ../../resource, security
-		// only specified folder and resources in it
-		// see: https://lgtm.com/rules/1510366186013/
-		if strings.Contains(path, "..") {
-			w.WriteHeader(http.StatusForbidden)
-			return
+		var f io.ReadCloser
+		var size int64
+
+		if strings.HasPrefix(path, "http") {
+			resp, err := http.Get(path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				http.Error(w, http.StatusText(resp.StatusCode), resp.StatusCode)
+				return
+			}
+
+			f = resp.Body
+			size = resp.ContentLength
+		} else {
+			// do not allow paths like ../../resource, security
+			// only specified folder and resources in it
+			// see: https://lgtm.com/rules/1510366186013/
+			if strings.Contains(path, "..") {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			// check if the file exists
+			fs, err := os.Stat(path)
+			if err != nil {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+
+			f, err = os.OpenFile(path, os.O_RDONLY, 0)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			defer func() {
+				_ = f.Close()
+			}()
+
+			size = fs.Size()
 		}
 
-		// check if the file exists
-		fs, err := os.Stat(path)
-		if err != nil {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-
-		f, err := os.OpenFile(path, os.O_RDONLY, 0)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		defer func() {
-			_ = f.Close()
-		}()
-
-		size := fs.Size()
 		var buf []byte
 		// do not allocate large buffer for the small files
-		if size < int64(bufSize) {
+		if size > 0 && size < int64(bufSize) {
 			// allocate exact size
 			buf = make([]byte, size)
 		} else {
@@ -147,9 +169,8 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			buf = make([]byte, bufSize)
 		}
 
-		off := 0
 		for {
-			n, err := f.ReadAt(buf, int64(off))
+			n, err := f.Read(buf)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					if n > 0 {
@@ -176,7 +197,6 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
-			off += n
 		}
 
 		w.Header().Set(ContentTypeKey, ContentTypeVal)
