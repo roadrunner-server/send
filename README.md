@@ -1,1 +1,1 @@
-# Docs: [link](https://roadrunner.dev/docs/middleware-sendfile/2.x/en)
+# Docs: [link](https://docs.roadrunner.dev/http/sendfile)
