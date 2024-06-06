@@ -1,6 +1,6 @@
 module github.com/roadrunner-server/send/v4
 
-go 1.22.3
+go 1.22.4
 
 require (
 	github.com/roadrunner-server/sdk/v4 v4.7.2
