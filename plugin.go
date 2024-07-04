@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/roadrunner-server/sdk/v4/utils"
+	rrcontext "github.com/roadrunner-server/context"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel/propagation"
@@ -52,7 +52,7 @@ func (p *Plugin) Init(log Logger) error {
 	return nil
 }
 
-// Middleware is HTTP plugin middleware to serve headers
+// Middleware is an HTTP plugin middleware to serve headers
 func (p *Plugin) Middleware(next http.Handler) http.Handler {
 	// Define the http.HandlerFunc
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			_ = r.Body.Close()
 		}()
 
-		if val, ok := r.Context().Value(utils.OtelTracerNameKey).(string); ok {
+		if val, ok := r.Context().Value(rrcontext.OtelTracerNameKey).(string); ok {
 			tp := trace.SpanFromContext(r.Context()).TracerProvider()
 			ctx, span := tp.Tracer(val, trace.WithSchemaURL(semconv.SchemaURL),
 				trace.WithInstrumentationVersion(otelhttp.Version())).
