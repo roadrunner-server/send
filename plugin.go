@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 const (
@@ -27,11 +27,11 @@ const (
 )
 
 type Logger interface {
-	NamedLogger(name string) *zap.Logger
+	NamedLogger(name string) *slog.Logger
 }
 
 type Plugin struct {
-	log         *zap.Logger
+	log         *slog.Logger
 	writersPool sync.Pool
 	prop        propagation.TextMapPropagator
 }
@@ -110,7 +110,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 				// write a body if exists
 				_, err := w.Write(rrWriter.data)
 				if err != nil {
-					p.log.Error("failed to write data to the response", zap.Error(err))
+					p.log.Error("failed to write data to the response", "error", err)
 				}
 			}
 
@@ -187,7 +187,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			_, err = w.Write(buf)
 			if err != nil {
 				// we can't write response into the response writer
-				p.log.Error("write response", zap.Error(err))
+				p.log.Error("write response", "error", err)
 				return
 			}
 
