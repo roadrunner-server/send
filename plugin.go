@@ -1,6 +1,7 @@
 package send
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -62,19 +63,37 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			_ = r.Body.Close()
 		}()
 
+		var otelVal string
+		var tp trace.TracerProvider
+
 		if val, ok := r.Context().Value(rrcontext.OtelTracerNameKey).(string); ok {
-			tp := trace.SpanFromContext(r.Context()).TracerProvider()
+			otelVal = val
+			tp = trace.SpanFromContext(r.Context()).TracerProvider()
+			var ctx context.Context
 			ctx, span := tp.Tracer(val, trace.WithSchemaURL(semconv.SchemaURL),
 				trace.WithInstrumentationVersion(otelhttp.Version)).
-				Start(r.Context(), PluginName, trace.WithSpanKind(trace.SpanKindServer))
-			defer span.End()
+				Start(r.Context(), PluginName, trace.WithSpanKind(trace.SpanKindInternal))
 
 			// inject
 			p.prop.Inject(ctx, propagation.HeaderCarrier(r.Header))
 			r = r.WithContext(ctx)
+			span.End()
 		}
 
 		next.ServeHTTP(rrWriter, r)
+
+		// start a second span for the post-processing (X-Sendfile handling)
+		var postSpan trace.Span
+		if otelVal != "" {
+			_, postSpan = tp.Tracer(otelVal, trace.WithSchemaURL(semconv.SchemaURL),
+				trace.WithInstrumentationVersion(otelhttp.Version)).
+				Start(r.Context(), PluginName+":post", trace.WithSpanKind(trace.SpanKindInternal))
+		}
+		defer func() {
+			if postSpan != nil {
+				postSpan.End()
+			}
+		}()
 
 		// if there is no X-Sendfile header from the PHP worker, just return
 		if path := rrWriter.Header().Get(xSendHeader); path == "" { //nolint:nestif
