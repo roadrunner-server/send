@@ -100,13 +100,9 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 		path := rrWriter.Header().Get(xSendHeader)
 
 		// if there is no X-Sendfile header from the PHP worker, just return
-		if path == "" { //nolint:nestif
-			for k, vals := range rrWriter.hdrToSend {
-				for _, v := range vals {
-					// re-add all headers from the worker
-					w.Header().Add(k, v)
-				}
-			}
+		if path == "" {
+			// re-add all headers from the worker
+			addHeaders(w.Header(), rrWriter.hdrToSend)
 
 			// write original
 			w.WriteHeader(rrWriter.code)
@@ -125,12 +121,7 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 		rrWriter.Header().Del(xSendHeader)
 
 		// re-add original headers
-		for k, vals := range rrWriter.hdrToSend {
-			for _, v := range vals {
-				// re-add all headers from the worker
-				w.Header().Add(k, v)
-			}
-		}
+		addHeaders(w.Header(), rrWriter.hdrToSend)
 
 		// do not allow paths like ../../resource, security
 		// only specified folder and resources in it
@@ -208,4 +199,13 @@ func (p *Plugin) putWriter(w *writer) {
 	w.data = w.data[:0]
 	clear(w.hdrToSend)
 	p.writersPool.Put(w)
+}
+
+// addHeaders copies every value of the worker-supplied headers into dst.
+func addHeaders(dst http.Header, src map[string][]string) {
+	for k, vals := range src {
+		for _, v := range vals {
+			dst.Add(k, v)
+		}
+	}
 }
