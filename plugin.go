@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -95,12 +96,15 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			}
 		}()
 
+		// capture the X-Sendfile path once
+		path := rrWriter.Header().Get(xSendHeader)
+
 		// if there is no X-Sendfile header from the PHP worker, just return
-		if path := rrWriter.Header().Get(xSendHeader); path == "" { //nolint:nestif
-			for k := range rrWriter.hdrToSend {
-				for kk := range rrWriter.hdrToSend[k] {
+		if path == "" { //nolint:nestif
+			for k, vals := range rrWriter.hdrToSend {
+				for _, v := range vals {
 					// re-add all headers from the worker
-					w.Header().Add(k, rrWriter.hdrToSend[k][kk])
+					w.Header().Add(k, v)
 				}
 			}
 
@@ -117,23 +121,21 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// we already checked that that header exists
-		path := rrWriter.Header().Get(xSendHeader)
 		// delete the original X-Sendfile header
 		rrWriter.Header().Del(xSendHeader)
 
 		// re-add original headers
-		for k := range rrWriter.hdrToSend {
-			for kk := range rrWriter.hdrToSend[k] {
+		for k, vals := range rrWriter.hdrToSend {
+			for _, v := range vals {
 				// re-add all headers from the worker
-				w.Header().Add(k, rrWriter.hdrToSend[k][kk])
+				w.Header().Add(k, v)
 			}
 		}
 
 		// do not allow paths like ../../resource, security
 		// only specified folder and resources in it
 		// see: https://lgtm.com/rules/1510366186013/
-		if strings.Contains(path, "..") {
+		if strings.Contains(filepath.Clean(path), "..") {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -145,36 +147,31 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		f, err := os.OpenFile(path, os.O_RDONLY, 0)
+		f, err := os.Open(path)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		defer f.Close()
 
-		defer func() {
-			_ = f.Close()
-		}()
+		// set content-type before writing any data
+		w.Header().Set(ContentTypeKey, ContentTypeVal)
 
 		size := fs.Size()
-		var buf []byte
-		// do not allocate large buffer for the small files
-		if size < int64(bufSize) {
-			// allocate exact size
-			buf = make([]byte, size)
-		} else {
-			// allocate default 10mb buf
-			buf = make([]byte, bufSize)
-		}
+		buf := make([]byte, min(size, int64(bufSize)))
 
 		off := 0
 		for {
+			buf = buf[:cap(buf)]
 			n, err := f.ReadAt(buf, int64(off))
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					if n > 0 {
-						goto out
+						_, werr := w.Write(buf[:n])
+						if werr != nil {
+							p.log.Error("write response", "error", werr)
+						}
 					}
-
 					break
 				}
 
@@ -182,23 +179,19 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 				return
 			}
 
-		out:
-			buf = buf[:n]
-			_, err = w.Write(buf)
-			if err != nil {
+			_, werr := w.Write(buf[:n])
+			if werr != nil {
 				// we can't write response into the response writer
-				p.log.Error("write response", "error", err)
+				p.log.Error("write response", "error", werr)
 				return
 			}
 
 			// send data to the user
-			if f, ok := w.(http.Flusher); ok {
-				f.Flush()
+			if fl, ok := w.(http.Flusher); ok {
+				fl.Flush()
 			}
 			off += n
 		}
-
-		w.Header().Set(ContentTypeKey, ContentTypeVal)
 	})
 }
 
@@ -212,11 +205,7 @@ func (p *Plugin) getWriter() *writer {
 
 func (p *Plugin) putWriter(w *writer) {
 	w.code = http.StatusOK
-	w.data = make([]byte, 0, 10)
-
-	for k := range w.hdrToSend {
-		delete(w.hdrToSend, k)
-	}
-
+	w.data = w.data[:0]
+	clear(w.hdrToSend)
 	p.writersPool.Put(w)
 }
