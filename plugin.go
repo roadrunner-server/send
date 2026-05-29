@@ -126,19 +126,28 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 		// do not allow paths like ../../resource, security
 		// only specified folder and resources in it
 		// see: https://lgtm.com/rules/1510366186013/
-		if strings.Contains(filepath.Clean(path), "..") {
+		cleanPath := filepath.Clean(path)
+		if strings.Contains(cleanPath, "..") {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
-		// check if the file exists
-		fs, err := os.Stat(path)
+		// check if the file exists; use the cleaned path for all subsequent I/O
+		fs, err := os.Stat(cleanPath)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 
-		f, err := os.Open(path)
+		// empty files have nothing to send
+		size := fs.Size()
+		if size == 0 {
+			w.Header().Set(ContentTypeKey, ContentTypeVal)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		f, err := os.Open(cleanPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -148,7 +157,6 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 		// set content-type before writing any data
 		w.Header().Set(ContentTypeKey, ContentTypeVal)
 
-		size := fs.Size()
 		buf := make([]byte, min(size, int64(bufSize)))
 
 		off := 0
@@ -161,6 +169,10 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 						_, werr := w.Write(buf[:n])
 						if werr != nil {
 							p.log.Error("write response", "error", werr)
+							return
+						}
+						if fl, ok := w.(http.Flusher); ok {
+							fl.Flush()
 						}
 					}
 					break
