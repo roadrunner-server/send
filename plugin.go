@@ -161,25 +161,13 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 
 		off := 0
 		for {
-			buf = buf[:cap(buf)]
 			n, err := f.ReadAt(buf, int64(off))
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					if n > 0 {
-						_, werr := w.Write(buf[:n])
-						if werr != nil {
-							p.log.Error("write response", "error", werr)
-							return
-						}
-						if fl, ok := w.(http.Flusher); ok {
-							fl.Flush()
-						}
-					}
-					break
-				}
-
+			if err != nil && !errors.Is(err, io.EOF) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
+			}
+			if n == 0 {
+				break
 			}
 
 			_, werr := w.Write(buf[:n])
@@ -192,6 +180,9 @@ func (p *Plugin) Middleware(next http.Handler) http.Handler {
 			// send data to the user
 			if fl, ok := w.(http.Flusher); ok {
 				fl.Flush()
+			}
+			if err != nil {
+				break
 			}
 			off += n
 		}
