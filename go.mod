@@ -2,10 +2,10 @@ module github.com/roadrunner-server/send/v6
 
 go 1.27
 
-toolchain go1.27.1
+toolchain go1.27.2
 
 require (
-	github.com/roadrunner-server/context v1.3.0
+	github.com/roadrunner-server/context v1.4.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.47.0
 	go.opentelemetry.io/otel v1.47.0
