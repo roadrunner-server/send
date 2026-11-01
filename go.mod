@@ -2,7 +2,7 @@ module github.com/roadrunner-server/send/v6
 
 go 1.27
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	github.com/roadrunner-server/context v1.4.0
